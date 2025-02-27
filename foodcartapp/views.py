@@ -3,7 +3,9 @@ from django.templatetags.static import static
 
 
 from .models import Product
-
+from .models import Order
+from .models import OrderProduct
+import json
 
 def banners_list_api(request):
     # FIXME move data to db?
@@ -59,4 +61,21 @@ def product_list_api(request):
 
 def register_order(request):
     # TODO это лишь заглушка
+    order_from_front = json.loads(request.body.decode())
+    print(order_from_front)
+    order, _ =Order.objects.get_or_create(
+        first_name=order_from_front['firstname'],
+        last_name=order_from_front['lastname'],
+        phone_number=order_from_front['phonenumber'],
+        address=order_from_front['address']
+    )
+    print(order)
+    for product in order_from_front['products']:
+        ordered_product = Product.objects.get(id=product['product'])
+        OrderProduct.objects.get_or_create(
+            order = order,
+            product = ordered_product,
+            quantity = product['quantity']
+        )
     return JsonResponse({})
+
