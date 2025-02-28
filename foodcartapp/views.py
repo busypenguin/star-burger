@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
+from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -63,21 +64,28 @@ def product_list_api(request):
 
 @api_view(['POST'])
 def register_order(request):
-    # TODO это лишь заглушка
     order_from_front = request.data
-    
-    order, _ =Order.objects.get_or_create(
-        first_name=order_from_front['firstname'],
-        last_name=order_from_front['lastname'],
-        phone_number=order_from_front['phonenumber'],
-        address=order_from_front['address']
-    )
-    for product in order_from_front['products']:
-        ordered_product = Product.objects.get(id=product['product'])
-        OrderProduct.objects.get_or_create(
-            order = order,
-            product = ordered_product,
-            quantity = product['quantity']
-        )
+    if 'products' not in order_from_front :
+        return Response({'error': 'Продуктов нет. products: Обязательное поле.'}, status=status.HTTP_400_BAD_REQUEST)
+    elif order_from_front['products'] is None:
+        return Response({'error': 'Продукты — это null. products: Это поле не может быть пустым.'}, status=status.HTTP_400_BAD_REQUEST)
+    elif not isinstance(order_from_front['products'], list):
+        return Response({'error': 'Продукты — это не список, а строка. products: Ожидался list со значениями, но был получен "str".'}, status=status.HTTP_400_BAD_REQUEST)
+    elif not order_from_front['products']:
+        return Response({'error': 'Продукты — пустой список. products: Этот список не может быть пустым.'}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        order, _ =Order.objects.get_or_create(
+                first_name=order_from_front['firstname'],
+                last_name=order_from_front['lastname'],
+                phone_number=order_from_front['phonenumber'],
+                address=order_from_front['address']
+            )
+        for product in order_from_front['products']:
+            ordered_product = Product.objects.get(id=product['product'])
+            OrderProduct.objects.get_or_create(
+                order = order,
+                product = ordered_product,
+                quantity = product['quantity']
+                )
     return Response()
 
