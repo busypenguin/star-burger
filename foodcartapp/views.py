@@ -1,5 +1,7 @@
 from django.http import JsonResponse
 from django.templatetags.static import static
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 
 from .models import Product
@@ -59,17 +61,17 @@ def product_list_api(request):
     })
 
 
+@api_view(['POST'])
 def register_order(request):
     # TODO это лишь заглушка
-    order_from_front = json.loads(request.body.decode())
-    print(order_from_front)
+    order_from_front = request.data
+    
     order, _ =Order.objects.get_or_create(
         first_name=order_from_front['firstname'],
         last_name=order_from_front['lastname'],
         phone_number=order_from_front['phonenumber'],
         address=order_from_front['address']
     )
-    print(order)
     for product in order_from_front['products']:
         ordered_product = Product.objects.get(id=product['product'])
         OrderProduct.objects.get_or_create(
@@ -77,5 +79,5 @@ def register_order(request):
             product = ordered_product,
             quantity = product['quantity']
         )
-    return JsonResponse({})
+    return Response()
 
