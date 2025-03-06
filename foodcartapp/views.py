@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.template.defaultfilters import first
 from django.templatetags.static import static
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -65,14 +66,30 @@ def product_list_api(request):
 @api_view(['POST'])
 def register_order(request):
     order_from_front = request.data
+
+    for product in order_from_front['products']:
+        if not Product.objects.filter(id=product['product']).exists():
+            return Response({'error':'products: Недопустимый первичный ключ "9999"'})
     if 'products' not in order_from_front :
-        return Response({'error': 'Продуктов нет. products: Обязательное поле.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'products: Обязательное поле.'}, status=status.HTTP_400_BAD_REQUEST)
     elif order_from_front['products'] is None:
-        return Response({'error': 'Продукты — это null. products: Это поле не может быть пустым.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'products: Это поле не может быть пустым.'}, status=status.HTTP_400_BAD_REQUEST)
     elif not isinstance(order_from_front['products'], list):
-        return Response({'error': 'Продукты — это не список, а строка. products: Ожидался list со значениями, но был получен "str".'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'products: Ожидался list со значениями, но был получен "str".'}, status=status.HTTP_400_BAD_REQUEST)
     elif not order_from_front['products']:
-        return Response({'error': 'Продукты — пустой список. products: Этот список не может быть пустым.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'products: Этот список не может быть пустым.'}, status=status.HTTP_400_BAD_REQUEST)
+    elif order_from_front['phonenumber'] == '':
+        return Response({'error': 'phonenumber: Это поле не может быть пустым.'})
+    elif ('firstname' not in order_from_front) or ('lastname' not in order_from_front) or ('phonenumber' not in order_from_front) or ('address' not in order_from_front):
+        return Response({'error': 'firstname, lastname, phonenumber, address: Обязательное поле.'})
+    elif (order_from_front['firstname'] is None) or (order_from_front['lastname'] is None) or (order_from_front['phonenumber'] is None) or (order_from_front['address'] is None):
+        return Response({'error': 'firstname, lastname, phonenumber, address: Это поле не может быть пустым.'})
+    elif not isinstance(order_from_front['firstname'], str):
+        return Response({'error': 'firstname: Not a valid string.'})
+    elif 'firstname' not in order_from_front:
+        return Response({'error': 'firstname: Это поле не может быть пустым.'})
+
+
     else:
         order, _ =Order.objects.get_or_create(
                 first_name=order_from_front['firstname'],
