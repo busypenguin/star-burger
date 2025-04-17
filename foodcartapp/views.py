@@ -4,11 +4,9 @@ from django.templatetags.static import static
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.serializers import ModelSerializer
 
-
-from .models import Product
-from .models import Order
-from .models import OrderProduct
+from .models import Product, Order, OrderProduct
 import json
 
 def banners_list_api(request):
@@ -63,46 +61,39 @@ def product_list_api(request):
     })
 
 
+class OrderProductSerializer(ModelSerializer):
+    class Meta:
+        model = OrderProduct
+        fields = ['product', 'quantity']
+
+
+class OrderSerializer(ModelSerializer):
+    products = OrderProductSerializer(many=True, allow_empty=False)
+    class Meta:
+        model = Order
+        fields = ['firstname', 'lastname', 'phonenumber', 'address', 'products']
+
+
 @api_view(['POST'])
 def register_order(request):
-    order_from_front = request.data
+    order_from_front = OrderSerializer(data=request.data) # serializer
+    order_from_front.is_valid(raise_exception=True)
 
-    for product in order_from_front['products']:
-        if not Product.objects.filter(id=product['product']).exists():
-            return Response({'error':'products: Недопустимый первичный ключ "9999"'})
-    if 'products' not in order_from_front :
-        return Response({'error': 'products: Обязательное поле.'}, status=status.HTTP_400_BAD_REQUEST)
-    elif order_from_front['products'] is None:
-        return Response({'error': 'products: Это поле не может быть пустым.'}, status=status.HTTP_400_BAD_REQUEST)
-    elif not isinstance(order_from_front['products'], list):
-        return Response({'error': 'products: Ожидался list со значениями, но был получен "str".'}, status=status.HTTP_400_BAD_REQUEST)
-    elif not order_from_front['products']:
-        return Response({'error': 'products: Этот список не может быть пустым.'}, status=status.HTTP_400_BAD_REQUEST)
-    elif order_from_front['phonenumber'] == '':
-        return Response({'error': 'phonenumber: Это поле не может быть пустым.'})
-    elif ('firstname' not in order_from_front) or ('lastname' not in order_from_front) or ('phonenumber' not in order_from_front) or ('address' not in order_from_front):
-        return Response({'error': 'firstname, lastname, phonenumber, address: Обязательное поле.'})
-    elif (order_from_front['firstname'] is None) or (order_from_front['lastname'] is None) or (order_from_front['phonenumber'] is None) or (order_from_front['address'] is None):
-        return Response({'error': 'firstname, lastname, phonenumber, address: Это поле не может быть пустым.'})
-    elif not isinstance(order_from_front['firstname'], str):
-        return Response({'error': 'firstname: Not a valid string.'})
-    elif 'firstname' not in order_from_front:
-        return Response({'error': 'firstname: Это поле не может быть пустым.'})
+    order, _ = Order.objects.get_or_create(
+            firstname=order_from_front.validated_data['firstname'],
+            lastname=order_from_front.validated_data['lastname'],
+            phonenumber=order_from_front.validated_data['phonenumber'],
+            address=order_from_front.validated_data['address']
+        )
 
-
-    else:
-        order, _ =Order.objects.get_or_create(
-                first_name=order_from_front['firstname'],
-                last_name=order_from_front['lastname'],
-                phone_number=order_from_front['phonenumber'],
-                address=order_from_front['address']
+    products__fields = order_from_front.validated_data['products']
+    for product in products__fields:
+        ordered_product = Product.objects.get(name=product['product'])
+        OrderProduct.objects.get_or_create(
+            order = order,
+            product = ordered_product,
+            quantity = product['quantity']
             )
-        for product in order_from_front['products']:
-            ordered_product = Product.objects.get(id=product['product'])
-            OrderProduct.objects.get_or_create(
-                order = order,
-                product = ordered_product,
-                quantity = product['quantity']
-                )
+
     return Response()
 
