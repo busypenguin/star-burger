@@ -9,6 +9,9 @@ from rest_framework.serializers import ModelSerializer
 from .models import Product, Order, OrderProduct
 import json
 
+
+
+
 def banners_list_api(request):
     # FIXME move data to db?
     return JsonResponse([
@@ -68,10 +71,10 @@ class OrderProductSerializer(ModelSerializer):
 
 
 class OrderSerializer(ModelSerializer):
-    products = OrderProductSerializer(many=True, allow_empty=False)
+    products = OrderProductSerializer(many=True, allow_empty=False, write_only=True)
     class Meta:
         model = Order
-        fields = ['firstname', 'lastname', 'phonenumber', 'address', 'products']
+        fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address', 'products']
 
 
 @api_view(['POST'])
@@ -85,6 +88,8 @@ def register_order(request):
             phonenumber=order_from_front.validated_data['phonenumber'],
             address=order_from_front.validated_data['address']
         )
+    
+    serializer = OrderSerializer(order)
 
     products__fields = order_from_front.validated_data['products']
     for product in products__fields:
@@ -94,6 +99,9 @@ def register_order(request):
             product = ordered_product,
             quantity = product['quantity']
             )
+
+    if order and ordered_product:
+        return  JsonResponse(serializer.data, status=201)
 
     return Response()
 
