@@ -89,8 +89,6 @@ def register_order(request):
             address=order_from_front.validated_data['address']
         )
     
-    serializer = OrderSerializer(order)
-
     products__fields = order_from_front.validated_data['products']
     for product in products__fields:
         ordered_product = Product.objects.get(name=product['product'])
@@ -99,7 +97,9 @@ def register_order(request):
             product = ordered_product,
             quantity = product['quantity']
             )
-
+        
+    serializer = OrderSerializer(order)
+    
     if order and ordered_product:
         return  JsonResponse(serializer.data, status=201)
 

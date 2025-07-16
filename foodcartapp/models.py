@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
+from django.db.models import Sum, F
 
 
 class Restaurant(models.Model):
@@ -124,6 +125,16 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
+
+class OrderQuerySet(models.QuerySet):
+    def order_cost(self):
+        return self.annotate(
+            order_cost=Sum(
+                F('order_products__product__price') * F('order_products__quantity')
+                )
+            )
+
+
 class Order(models.Model):
     firstname = models.CharField(
         verbose_name = 'имя',
@@ -142,6 +153,24 @@ class Order(models.Model):
         verbose_name = 'адрес',
         max_length=100
     )
+    objects = OrderQuerySet.as_manager()
+    
+    # status = models.CharField(
+    #     'статус',
+    #     max_length=50,
+    #     default='NEW',
+    #     choices=[
+    #         ('NEW', 'новый'),
+    #         ('IN_PROGRESS', 'в работе'),
+    #         ('DONE', 'выполнен'),
+    #     ]
+    # )
+
+    # products = models.ManyToManyField(
+    #     Product,
+    #     through='OrderProduct',
+    #     related_name='orders'
+    # )
 
     class Meta:
         verbose_name = 'заказ'
@@ -172,9 +201,21 @@ class OrderProduct(models.Model):
     class Meta:
         verbose_name = 'продукт заказа'
         verbose_name_plural = 'продукты заказа'
+        # unique_together = [
+        #     ['order', 'product']
+        # ]
 
     def __str__(self):
         return f"{self.product.name} - {self.quantity} шт."
 
-
+# {'products': [
+#     {'product': 6, 'quantity': 1},
+#     {'product': 5, 'quantity': 3},
+#     {'product': 4, 'quantity': 2}
+#     ],
+# 'firstname': 'Star',
+# 'lastname': 'Европейский',
+# 'phonenumber': '+79296804758',
+# 'address': 'Москва, пл. Киевского Вокзала, 2'
+# }
 
