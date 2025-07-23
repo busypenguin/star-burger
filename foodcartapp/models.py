@@ -155,22 +155,6 @@ class Order(models.Model):
     )
     objects = OrderQuerySet.as_manager()
     
-    # status = models.CharField(
-    #     'статус',
-    #     max_length=50,
-    #     default='NEW',
-    #     choices=[
-    #         ('NEW', 'новый'),
-    #         ('IN_PROGRESS', 'в работе'),
-    #         ('DONE', 'выполнен'),
-    #     ]
-    # )
-
-    # products = models.ManyToManyField(
-    #     Product,
-    #     through='OrderProduct',
-    #     related_name='orders'
-    # )
 
     class Meta:
         verbose_name = 'заказ'
@@ -194,28 +178,23 @@ class OrderProduct(models.Model):
     quantity = models.PositiveIntegerField(
         verbose_name='количество',
         default=0,
-        # db_index=True,
         blank=True
     )
+    price = models.DecimalField(
+        'стоимость',
+        default=0,
+        max_digits=8,
+        decimal_places=2,
+        validators=[MinValueValidator(0)]
+    )
+    
 
     class Meta:
         verbose_name = 'продукт заказа'
         verbose_name_plural = 'продукты заказа'
-        # unique_together = [
-        #     ['order', 'product']
-        # ]
+
 
     def __str__(self):
         return f"{self.product.name} - {self.quantity} шт."
 
-# {'products': [
-#     {'product': 6, 'quantity': 1},
-#     {'product': 5, 'quantity': 3},
-#     {'product': 4, 'quantity': 2}
-#     ],
-# 'firstname': 'Star',
-# 'lastname': 'Европейский',
-# 'phonenumber': '+79296804758',
-# 'address': 'Москва, пл. Киевского Вокзала, 2'
-# }
 

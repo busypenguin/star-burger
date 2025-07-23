@@ -95,7 +95,8 @@ def register_order(request):
         OrderProduct.objects.get_or_create(
             order = order,
             product = ordered_product,
-            quantity = product['quantity']
+            quantity = product['quantity'],
+            price=ordered_product.price * product['quantity']
             )
         
     serializer = OrderSerializer(order)

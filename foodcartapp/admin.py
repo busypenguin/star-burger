@@ -123,11 +123,20 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [
         OrderProductItemInline
     ]
+    
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for instance in instances:
+            if instance.price == 0:
+                instance.price = instance.product.price * instance.quantity
+                instance.save()
+        formset.save_m2m()
 
 
 @admin.register(OrderProduct)
-class OrderProduct(admin.ModelAdmin):
+class OrderProductAdmin(admin.ModelAdmin):
     list_display = [
         'order',
         'product',
+        'price',
     ]
