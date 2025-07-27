@@ -136,6 +136,12 @@ class OrderQuerySet(models.QuerySet):
 
 
 class Order(models.Model):
+    ORDER_STATUSES = [
+        ('NEW', 'Необработанный'),
+        ('PROCESSING', 'Готовится'),
+        ('IN_TRANSIT', 'Доставляется'),
+        ('DONE', 'Выполнен')
+        ]
     firstname = models.CharField(
         verbose_name = 'имя',
         max_length=50
@@ -155,6 +161,14 @@ class Order(models.Model):
     )
     objects = OrderQuerySet.as_manager()
     
+    status = models.CharField(
+        verbose_name = 'статус',
+        max_length=50,
+        default='NEW',
+        choices=ORDER_STATUSES,
+        db_index=True
+    )
+
 
     class Meta:
         verbose_name = 'заказ'
