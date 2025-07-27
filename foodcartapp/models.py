@@ -142,6 +142,14 @@ class Order(models.Model):
         ('IN_TRANSIT', 'Доставляется'),
         ('DONE', 'Выполнен')
         ]
+    
+    status = models.CharField(
+        verbose_name = 'статус',
+        max_length=50,
+        default='NEW',
+        choices=ORDER_STATUSES,
+        db_index=True
+    )
     firstname = models.CharField(
         verbose_name = 'имя',
         max_length=50
@@ -152,23 +160,20 @@ class Order(models.Model):
     )
     phonenumber = PhoneNumberField(
         region="RU",
-        verbose_name = 'телефон',
+        verbose_name ='телефон',
         max_length=50
     )
     address = models.CharField(
         verbose_name = 'адрес',
         max_length=100
     )
+    comment = models.TextField(
+        verbose_name = 'Комментарий',
+        blank = True,
+        max_length = 200
+    )
     objects = OrderQuerySet.as_manager()
     
-    status = models.CharField(
-        verbose_name = 'статус',
-        max_length=50,
-        default='NEW',
-        choices=ORDER_STATUSES,
-        db_index=True
-    )
-
 
     class Meta:
         verbose_name = 'заказ'
