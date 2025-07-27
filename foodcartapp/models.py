@@ -142,12 +142,23 @@ class Order(models.Model):
         ('IN_TRANSIT', 'Доставляется'),
         ('DONE', 'Выполнен')
         ]
-    
+    PAYMENT_STATUSES = [
+        ('NOT_PAID', 'Не оплачено'),
+        ('ONLINE', 'Электронно'),
+        ('CASH', 'Наличностью')
+    ]
     status = models.CharField(
         verbose_name = 'статус',
         max_length=50,
         default='NEW',
         choices=ORDER_STATUSES,
+        db_index=True
+    )
+    payment_method = models.CharField(
+        verbose_name = 'способ оплаты',
+        max_length=50,
+        default='NOT_PAID',
+        choices=PAYMENT_STATUSES,
         db_index=True
     )
     firstname = models.CharField(
