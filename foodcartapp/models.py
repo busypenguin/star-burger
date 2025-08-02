@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Count
 from django.utils import timezone
 
 class Restaurant(models.Model):
@@ -161,6 +161,14 @@ class Order(models.Model):
         choices=PAYMENT_STATUSES,
         db_index=True
     )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        related_name='restaurant_order',
+        verbose_name="ресторан",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+    )
     firstname = models.CharField(
         verbose_name = 'имя',
         max_length=50
@@ -184,19 +192,44 @@ class Order(models.Model):
         max_length = 200
     )
     registrated_at = models.DateTimeField(
+        verbose_name = 'зарегестрировано',
         default=timezone.now,
         db_index=True
     )
     called_at = models.DateTimeField(
+        verbose_name = 'согласовано',
         null = True,
+        blank = True,
         db_index=True
     )
     delivered_at = models.DateTimeField(
+        verbose_name = 'доставлено',
         null = True,
+        blank = True,
         db_index=True
     )
     objects = OrderQuerySet.as_manager()
     
+    
+    def get_available_restaurants(self):
+        order_products_id = self.order_products.all().values_list('product', flat=True)
+        available_restaurants  = Restaurant.objects.filter(
+            menu_items__product__in=order_products_id,
+            menu_items__availability=True
+        ).annotate(
+            matching_products=Count('menu_items__product')
+        ).filter(
+            matching_products=len(order_products_id)
+        ).distinct()
+        return available_restaurants
+    
+    
+    def set_restaurant(self, restaurant):
+        self.restaurant = restaurant
+        if restaurant and self.status == 'NEW':
+            self.status = 'PROCESSING'
+            self.save()
+        return self
 
     class Meta:
         verbose_name = 'заказ'

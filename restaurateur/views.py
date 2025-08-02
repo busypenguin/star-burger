@@ -7,9 +7,9 @@ from django.db.models import Q
 
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
+from django.db.models import Count
 
-
-from foodcartapp.models import Product, Restaurant, Order
+from foodcartapp.models import Product, Restaurant, Order, OrderProduct, RestaurantMenuItem
 
 
 class Login(forms.Form):
@@ -94,7 +94,16 @@ def view_restaurants(request):
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     order_items = Order.objects.filter(~Q(status='DONE')).order_cost()
+    
+    
+    orders_with_restaurants = []
+    for order in order_items:
+        available_restaurants = order.get_available_restaurants()
+        orders_with_restaurants.append({
+            'order': order,
+            'available_restaurants': available_restaurants
+        })
+    
     return render(request, template_name='order_items.html', context={
-        'order_items': order_items
-        # TODO заглушка для нереализованного функционала
+        'order_items': orders_with_restaurants
     })

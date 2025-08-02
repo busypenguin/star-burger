@@ -119,7 +119,8 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = [
         'firstname',
         'lastname',
-        'phonenumber'
+        'phonenumber',
+        'restaurant'
     ]
     inlines = [
         OrderProductItemInline
@@ -142,8 +143,16 @@ class OrderAdmin(admin.ModelAdmin):
             allowed_hosts={request.get_host()}
         ):
             return redirect(next_url)
-            
+        if '_continue' not in request.POST and 'restaurant' in request.POST:
+            return redirect('restaurateur:view_orders')
         return super().response_change(request, obj)
+    
+    
+    def save_model(self, request, obj, form, change):
+        if 'restaurant' in form.changed_data and obj.restaurant:
+            if obj.status == 'NEW':
+                obj.status = 'PROCESSING'
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(OrderProduct)
