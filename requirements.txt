@@ -6,3 +6,6 @@ djangorestframework==3.13.0
 django-phonenumber-field==8.0.0
 phonenumbers==9.0.0
 marshmallow==3.26.1
+geographiclib==2.0
+geopy==2.4.1
+requests==2.32.4
