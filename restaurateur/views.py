@@ -2,6 +2,7 @@ from django import forms
 from django.shortcuts import redirect, render
 from django.views import View
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.contrib.auth.decorators import user_passes_test
 from django.db.models import Q
 
@@ -9,10 +10,13 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from django.conf import settings 
 from django.db.models import Count
+from django.db import IntegrityError
 
 from foodcartapp.models import Product, Restaurant, Order, OrderProduct, RestaurantMenuItem
+from distance.models import Place
 import requests
 from geopy import distance
+
 
 
 yandex_api_key = settings.YANDEX_API_KEY
@@ -119,6 +123,25 @@ def fetch_coordinates(apikey, address):
 def view_orders(request):
     order_items = Order.objects.filter(~Q(status='DONE')).order_cost()
     rests = Restaurant.objects.all()
+    
+    for rest in rests:
+            
+        try:
+            rest_address_coords = fetch_coordinates(yandex_api_key, rest.address)
+            if rest_address_coords is None:
+                raise requests.RequestException
+            Place.objects.get_or_create(
+                    address = rest.address,
+                    defaults =  {
+                    'longitude' : rest_address_coords[0],
+                    'latitude' : rest_address_coords[1]
+                    }
+                )
+        except requests.RequestException:
+            rests_and_distance = available_restaurants
+        except IntegrityError:
+            continue
+        
     orders_with_restaurants = []
     for order in order_items:
         
@@ -126,26 +149,39 @@ def view_orders(request):
             available_restaurants = order.get_available_restaurants()
             rests_and_distance = []
             order_address_coords = fetch_coordinates(yandex_api_key, order.address)
-
+            
             if order_address_coords is None:
                 raise requests.RequestException
-            
-            
+                    
+            place, _ = Place.objects.get_or_create(
+                address = order.address,
+                defaults =  {
+                    'longitude' : order_address_coords[0],
+                    'latitude' : order_address_coords[1]
+                    }
+                )
+               
+            place_coords = (place.longitude, place.latitude)
+
             for rest in available_restaurants:
-                rest_address_coords = fetch_coordinates(yandex_api_key, rest.address)
-                distance_between_order_and_rest = distance.distance(order_address_coords, rest_address_coords).km
+                rest_place = Place.objects.get(address=rest.address)
+                rest_coords = (rest_place.longitude, rest_place.latitude)
+                distance_between_order_and_rest = distance.distance(place_coords, rest_coords).km
+                print(distance_between_order_and_rest)
                 rests_and_distance.append((rest.name, round(distance_between_order_and_rest, 3)))
+
             sorted(rests_and_distance, key=lambda rest: rest[1])
+                
+            orders_with_restaurants.append({
+                    'order': order,
+                    'available_restaurants': rests_and_distance
+                })    
+
         except requests.RequestException:
             rests_and_distance = available_restaurants
-
+        except IntegrityError:
+            continue
         
-        
-        orders_with_restaurants.append({
-            'order': order,
-            'available_restaurants': rests_and_distance
-        })
-    
     return render(request, template_name='order_items.html', context={
         'order_items': orders_with_restaurants
     })

@@ -10,6 +10,7 @@ from .models import Restaurant
 from .models import RestaurantMenuItem
 from .models import Order
 from .models import OrderProduct
+from distance.models import Place
 
 
 class RestaurantMenuItemInline(admin.TabularInline):
@@ -161,4 +162,14 @@ class OrderProductAdmin(admin.ModelAdmin):
         'order',
         'product',
         'price',
+    ]
+
+
+@admin.register(Place)
+class PlacetAdmin(admin.ModelAdmin):
+    search_fields = [
+        'address',
+    ]
+    list_display = [
+        'address',
     ]
