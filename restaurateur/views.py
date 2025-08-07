@@ -167,7 +167,6 @@ def view_orders(request):
                 rest_place = Place.objects.get(address=rest.address)
                 rest_coords = (rest_place.longitude, rest_place.latitude)
                 distance_between_order_and_rest = distance.distance(place_coords, rest_coords).km
-                print(distance_between_order_and_rest)
                 rests_and_distance.append((rest.name, round(distance_between_order_and_rest, 3)))
 
             sorted(rests_and_distance, key=lambda rest: rest[1])

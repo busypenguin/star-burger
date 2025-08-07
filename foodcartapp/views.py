@@ -91,8 +91,8 @@ def register_order(request):
             address=order_from_front.validated_data['address']
         )
     
-    products__fields = order_from_front.validated_data['products']
-    for product in products__fields:
+    products = order_from_front.validated_data['products']
+    for product in products:
         ordered_product = Product.objects.get(name=product['product'])
         OrderProduct.objects.get_or_create(
             order = order,
