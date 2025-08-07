@@ -163,11 +163,11 @@ class Order(models.Model):
     )
     restaurant = models.ForeignKey(
         Restaurant,
-        related_name='restaurant_order',
+        related_name='restaurant_orders',
         verbose_name="ресторан",
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
     )
     firstname = models.CharField(
         verbose_name = 'имя',
@@ -211,6 +211,14 @@ class Order(models.Model):
     objects = OrderQuerySet.as_manager()
     
     
+    class Meta:
+        verbose_name = 'заказ'
+        verbose_name_plural = 'заказы'
+
+    def __str__(self):
+        return f"{self.firstname} {self.lastname} {self.address}"
+    
+    
     def get_available_restaurants(self):
         order_products_id = self.order_products.all().values_list('product', flat=True)
         available_restaurants  = Restaurant.objects.filter(
@@ -231,29 +239,24 @@ class Order(models.Model):
             self.save()
         return self
 
-    class Meta:
-        verbose_name = 'заказ'
-        verbose_name_plural = 'заказы'
-
-    def __str__(self):
-        return f"{self.firstname} {self.lastname} {self.address}"
-
 
 class OrderProduct(models.Model):
     order = models.ForeignKey(
         Order,
+        verbose_name='заказ',
         on_delete=models.CASCADE,
         related_name='order_products'
     )
     product = models.ForeignKey(
         Product,
+        verbose_name='продукт',
         on_delete=models.CASCADE,
         related_name='order_products'
     )
     quantity = models.PositiveIntegerField(
         verbose_name='количество',
-        default=0,
-        blank=True
+        default=1,
+        validators=[MinValueValidator(1)]
     )
     price = models.DecimalField(
         'стоимость',
