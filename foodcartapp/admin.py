@@ -158,6 +158,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderProduct)
 class OrderProductAdmin(admin.ModelAdmin):
+    raw_id_fields = ['order']
     list_display = [
         'order',
         'product',
