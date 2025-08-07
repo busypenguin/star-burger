@@ -17,7 +17,7 @@ class Place(models.Model):
         null=True,
         blank=True
     )
-    request_data = models.DateTimeField(
+    request_date = models.DateTimeField(
         verbose_name = 'дата запроса',
         null = True,
         blank = True,
