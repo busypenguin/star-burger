@@ -3,6 +3,8 @@ from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
 from django.db.models import Sum, F, Count
 from django.utils import timezone
+from collections import defaultdict
+
 
 class Restaurant(models.Model):
     name = models.CharField(
@@ -133,7 +135,25 @@ class OrderQuerySet(models.QuerySet):
                 F('order_products__product__price') * F('order_products__quantity')
                 )
             )
-
+    
+    def get_available_restaurants(self):
+        rest_items = RestaurantMenuItem.objects.all()
+        rests_with_products = defaultdict(set)
+        
+        for item in rest_items:
+            rests_with_products[item.restaurant].add(item.product)
+        
+        for order in self:
+            products = {order_product.product for order_product in order.order_products.all()}
+            available_restaurants = []
+            
+            for restaurant, restaurant_products in rests_with_products.items():
+                if products.issubset(restaurant_products):
+                    available_restaurants.append(restaurant)
+                
+            order.available_restaurants = available_restaurants
+        return self
+                
 
 class Order(models.Model):
     ORDER_STATUSES = [
@@ -217,20 +237,6 @@ class Order(models.Model):
 
     def __str__(self):
         return f"{self.firstname} {self.lastname} {self.address}"
-    
-    
-    def get_available_restaurants(self):
-        order_products_id = self.order_products.all().values_list('product', flat=True)
-        available_restaurants  = Restaurant.objects.filter(
-            menu_items__product__in=order_products_id,
-            menu_items__availability=True
-        ).annotate(
-            matching_products=Count('menu_items__product')
-        ).filter(
-            matching_products=len(order_products_id)
-        ).distinct()
-        return available_restaurants
-    
     
     def set_restaurant(self, restaurant):
         self.restaurant = restaurant
