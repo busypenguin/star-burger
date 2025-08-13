@@ -103,66 +103,54 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    order_items = Order.objects.exclude(status='DONE').order_cost()
+    order_items = Order.objects.exclude(status='DONE').order_cost().get_available_restaurants()
     rests = Restaurant.objects.all()
     
+    addresses = []
+    address_with_coords = {}
+    
     for rest in rests:
-            
-        try:
-            rest_address_coords = fetch_coordinates(yandex_api_key, rest.address)
-            if rest_address_coords is None:
-                raise requests.RequestException
-            Place.objects.get_or_create(
-                    address = rest.address,
-                    defaults =  {
-                    'longitude' : rest_address_coords[0],
-                    'latitude' : rest_address_coords[1]
-                    }
-                )
-        except requests.RequestException:
-            rests_and_distance = available_restaurants
-        except IntegrityError:
-            continue
-        
-    orders_with_restaurants = []
+        addresses.append(rest.address)
     for order in order_items:
-        
+        addresses.append(order.address)
+
+    places = Place.objects.filter(address__in=addresses)
+    places_names = places.values_list('address', flat=True)
+    
+    for address in addresses:
         try:
-            available_restaurants = order.get_available_restaurants()
-            rests_and_distance = []
-            order_address_coords = fetch_coordinates(yandex_api_key, order.address)
-            
-            if order_address_coords is None:
-                raise requests.RequestException
-                    
-            place, _ = Place.objects.get_or_create(
-                address = order.address,
-                defaults =  {
-                    'longitude' : order_address_coords[0],
-                    'latitude' : order_address_coords[1]
-                    }
-                )
-               
-            place_coords = (place.longitude, place.latitude)
-
-            for rest in available_restaurants:
-                rest_place = Place.objects.get(address=rest.address)
-                rest_coords = (rest_place.longitude, rest_place.latitude)
-                distance_between_order_and_rest = distance.distance(place_coords, rest_coords).km
-                rests_and_distance.append((rest.name, round(distance_between_order_and_rest, 3)))
-
-            sorted(rests_and_distance, key=lambda rest: rest[1])
-                
-            orders_with_restaurants.append({
-                    'order': order,
-                    'available_restaurants': rests_and_distance
-                })    
-
-        except requests.RequestException:
-            rests_and_distance = available_restaurants
+            if address in places_names:
+                address_with_coords[places.get(address=address).address] = (places.get(address=address).longitude, places.get(address=address).latitude)
+            else:
+                address_coords = fetch_coordinates(yandex_api_key, address)
+                place, _ = Place.objects.get_or_create(
+                        address = address,
+                        defaults =  {
+                        'longitude' : address_coords[0],
+                        'latitude' : address_coords[1]
+                        }
+                    )
+                address_with_coords[place.address] = (place.longitude, place.latitude)
         except IntegrityError:
-            continue
-        
+            continue   
+
+    orders_with_restaurants = []
+    
+    for order in order_items:
+        rests_and_distance = []
+        for rest in order.available_restaurants:
+            place_coords = address_with_coords[order.address]
+            rest_coords = address_with_coords[rest.address]
+            distance_between_order_and_rest = distance.distance(place_coords, rest_coords).km
+            rests_and_distance.append((rest.name, round(distance_between_order_and_rest, 3)))
+        sorted(rests_and_distance, key=lambda rest: rest[1])
+        print(rests_and_distance)
+        orders_with_restaurants.append({
+                'order': order,
+                'available_restaurants': rests_and_distance
+            })        
+            
+
     return render(request, template_name='order_items.html', context={
         'order_items': orders_with_restaurants
     })
