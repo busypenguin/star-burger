@@ -105,10 +105,10 @@ def view_restaurants(request):
 def view_orders(request):
     order_items = Order.objects.exclude(status='DONE').order_cost().get_available_restaurants()
     rests = Restaurant.objects.all()
-    
+
     addresses = []
     address_with_coords = {}
-    
+
     for rest in rests:
         addresses.append(rest.address)
     for order in order_items:
@@ -124,15 +124,15 @@ def view_orders(request):
             else:
                 address_coords = fetch_coordinates(yandex_api_key, address)
                 place, _ = Place.objects.get_or_create(
-                        address = address,
-                        defaults =  {
-                        'longitude' : address_coords[0],
-                        'latitude' : address_coords[1]
+                        address=address,
+                        defaults={
+                            'longitude': address_coords[0],
+                            'latitude': address_coords[1]
                         }
                     )
                 address_with_coords[place.address] = (place.longitude, place.latitude)
         except IntegrityError:
-            continue   
+            continue
 
     orders_with_restaurants = []
     
@@ -144,12 +144,11 @@ def view_orders(request):
             distance_between_order_and_rest = distance.distance(place_coords, rest_coords).km
             rests_and_distance.append((rest.name, round(distance_between_order_and_rest, 3)))
         sorted(rests_and_distance, key=lambda rest: rest[1])
-        print(rests_and_distance)
+
         orders_with_restaurants.append({
                 'order': order,
                 'available_restaurants': rests_and_distance
-            })        
-            
+            })
 
     return render(request, template_name='order_items.html', context={
         'order_items': orders_with_restaurants
