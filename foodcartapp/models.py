@@ -127,7 +127,6 @@ class RestaurantMenuItem(models.Model):
         return f"{self.restaurant.name} - {self.product.name}"
 
 
-
 class OrderQuerySet(models.QuerySet):
     def order_cost(self):
         return self.annotate(
@@ -135,25 +134,25 @@ class OrderQuerySet(models.QuerySet):
                 F('order_products__product__price') * F('order_products__quantity')
                 )
             )
-    
+
     def get_available_restaurants(self):
         rest_items = RestaurantMenuItem.objects.all()
         rests_with_products = defaultdict(set)
-        
+
         for item in rest_items:
             rests_with_products[item.restaurant].add(item.product)
-        
+
         for order in self:
             products = {order_product.product for order_product in order.order_products.all()}
             available_restaurants = []
-            
+
             for restaurant, restaurant_products in rests_with_products.items():
                 if products.issubset(restaurant_products):
                     available_restaurants.append(restaurant)
-                
+
             order.available_restaurants = available_restaurants
         return self
-                
+
 
 class Order(models.Model):
     ORDER_STATUSES = [
@@ -168,14 +167,14 @@ class Order(models.Model):
         ('CASH', 'Наличностью')
     ]
     status = models.CharField(
-        verbose_name = 'статус',
+        verbose_name='статус',
         max_length=50,
         default='NEW',
         choices=ORDER_STATUSES,
         db_index=True
     )
     payment_method = models.CharField(
-        verbose_name = 'способ оплаты',
+        verbose_name='способ оплаты',
         max_length=50,
         default='NOT_PAID',
         choices=PAYMENT_STATUSES,
@@ -190,54 +189,53 @@ class Order(models.Model):
         on_delete=models.SET_NULL,
     )
     firstname = models.CharField(
-        verbose_name = 'имя',
+        verbose_name='имя',
         max_length=50
     )
     lastname = models.CharField(
-        verbose_name = 'фамилия',
+        verbose_name='фамилия',
         max_length=50
     )
     phonenumber = PhoneNumberField(
         region="RU",
-        verbose_name ='телефон',
+        verbose_name='телефон',
         max_length=50
     )
     address = models.CharField(
-        verbose_name = 'адрес',
+        verbose_name='адрес',
         max_length=100
     )
     comment = models.TextField(
-        verbose_name = 'Комментарий',
-        blank = True,
-        max_length = 200
+        verbose_name='Комментарий',
+        blank=True,
+        max_length=200
     )
     registrated_at = models.DateTimeField(
-        verbose_name = 'зарегестрировано',
+        verbose_name='зарегестрировано',
         default=timezone.now,
         db_index=True
     )
     called_at = models.DateTimeField(
-        verbose_name = 'согласовано',
-        null = True,
-        blank = True,
+        verbose_name='согласовано',
+        null=True,
+        blank=True,
         db_index=True
     )
     delivered_at = models.DateTimeField(
-        verbose_name = 'доставлено',
-        null = True,
-        blank = True,
+        verbose_name='доставлено',
+        null=True,
+        blank=True,
         db_index=True
     )
     objects = OrderQuerySet.as_manager()
-    
-    
+
     class Meta:
         verbose_name = 'заказ'
         verbose_name_plural = 'заказы'
 
     def __str__(self):
         return f"{self.firstname} {self.lastname} {self.address}"
-    
+
     def set_restaurant(self, restaurant):
         self.restaurant = restaurant
         if restaurant and self.status == 'NEW':
@@ -271,14 +269,10 @@ class OrderProduct(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(0)]
     )
-    
 
     class Meta:
         verbose_name = 'продукт заказа'
         verbose_name_plural = 'продукты заказа'
 
-
     def __str__(self):
         return f"{self.product.name} - {self.quantity} шт."
-
-
