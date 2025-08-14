@@ -40,12 +40,11 @@
             Готовит {{ item.order.restaurant.name }}
           {% else %}
             {% if item.available_restaurants %}
-            <details><summary>Может быть приготовлен ресторанами:</summary>
-              {% for restaurant in item.available_restaurants %}
-                {{ restaurant}} км
-              {% endfor %}
-              
-            </details>
+              <details><summary>Может быть приготовлен ресторанами:</summary>
+                {% for restaurant in item.available_restaurants %}
+                  {{ restaurant}} км
+                {% endfor %}
+              </details>
             {% endif %}
           {% endif %}
         </td>
