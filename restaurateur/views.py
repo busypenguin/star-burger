@@ -12,7 +12,7 @@ from django.conf import settings
 from django.db.models import Count
 from django.db import IntegrityError
 
-from foodcartapp.models import Product, Restaurant, Order, OrderProduct, RestaurantMenuItem
+from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
 from distance.models import Place
 import requests
 from geopy import distance
@@ -103,7 +103,7 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    order_items = Order.objects.exclude(status='DONE').order_cost().get_available_restaurants()
+    order_items = Order.objects.exclude(status='DONE').prefetch_related('order_products').order_cost().get_available_restaurants()
     rests = Restaurant.objects.all()
 
     addresses = []
