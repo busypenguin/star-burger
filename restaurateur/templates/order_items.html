@@ -33,7 +33,11 @@
         <td>{{ item.order.order_cost }}</td>
         <td>{{ item.order.firstname }} {{ item.lastname }}</td>
         <td>{{ item.order.phonenumber }}</td>
-        <td>{{ item.order.address }}</td>
+        {% if item.order.address %}
+          <td>{{ item.order.address }}</td>
+        {% else %}
+          <td> Адрес не найден </td>
+        {% endif %}
         <td>{{ item.order.comment }}</td>
         <td>
           {% if item.order.restaurant %}

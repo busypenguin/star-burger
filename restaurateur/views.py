@@ -124,6 +124,8 @@ def view_orders(request):
         try:
             if address not in places_names:
                 address_coords = fetch_coordinates(yandex_api_key, address)
+                if address_coords is None:
+                    raise requests.RequestException
                 place, _ = Place.objects.get_or_create(
                             address=address,
                             defaults={
@@ -134,17 +136,23 @@ def view_orders(request):
                 address_with_coords[place.address] = (place.longitude, place.latitude)
         except IntegrityError:
             continue
+        except requests.RequestException:
+            address_with_coords[None] = (0, 0)
 
     orders_with_restaurants = []
 
     for order in order_items:
         rests_and_distance = []
-        for rest in order.available_restaurants:
-            place_coords = address_with_coords[order.address]
-            rest_coords = address_with_coords[rest.address]
-            distance_between_order_and_rest = distance.distance(place_coords, rest_coords).km
-            rests_and_distance.append((rest.name, round(distance_between_order_and_rest, 3)))
-        sorted(rests_and_distance, key=lambda rest: rest[1])
+        if order.address in address_with_coords:
+            for rest in order.available_restaurants:
+                place_coords = address_with_coords[order.address]
+                rest_coords = address_with_coords[rest.address]
+                distance_between_order_and_rest = distance.distance(place_coords, rest_coords).km
+                rests_and_distance.append((rest.name, round(distance_between_order_and_rest, 3)))
+            sorted(rests_and_distance, key=lambda rest: rest[1])
+        else:
+            order.address = None
+            rests_and_distance = []
 
         orders_with_restaurants.append({
                 'order': order,
