@@ -116,26 +116,27 @@ def view_orders(request):
 
     places = Place.objects.filter(address__in=addresses)
     places_names = places.values_list('address', flat=True)
-    
+
+    for place in places:
+        address_with_coords[place.address] = (place.longitude, place.latitude)
+
     for address in addresses:
         try:
-            if address in places_names:
-                address_with_coords[places.get(address=address).address] = (places.get(address=address).longitude, places.get(address=address).latitude)
-            else:
+            if address not in places_names:
                 address_coords = fetch_coordinates(yandex_api_key, address)
                 place, _ = Place.objects.get_or_create(
-                        address=address,
-                        defaults={
-                            'longitude': address_coords[0],
-                            'latitude': address_coords[1]
-                        }
-                    )
+                            address=address,
+                            defaults={
+                                'longitude': address_coords[0],
+                                'latitude': address_coords[1]
+                            }
+                        )
                 address_with_coords[place.address] = (place.longitude, place.latitude)
         except IntegrityError:
             continue
 
     orders_with_restaurants = []
-    
+
     for order in order_items:
         rests_and_distance = []
         for rest in order.available_restaurants:
