@@ -11,8 +11,6 @@ from .models import Product, Order, OrderProduct
 import json
 
 
-
-
 def banners_list_api(request):
     # FIXME move data to db?
     return JsonResponse([
@@ -73,6 +71,7 @@ class OrderProductSerializer(ModelSerializer):
 
 class OrderSerializer(ModelSerializer):
     products = OrderProductSerializer(many=True, allow_empty=False, write_only=True)
+
     class Meta:
         model = Order
         fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address', 'products']
@@ -81,7 +80,7 @@ class OrderSerializer(ModelSerializer):
 @transaction.atomic
 @api_view(['POST'])
 def register_order(request):
-    order_from_front = OrderSerializer(data=request.data) # serializer
+    order_from_front = OrderSerializer(data=request.data)  # serializer
     order_from_front.is_valid(raise_exception=True)
 
     order, _ = Order.objects.get_or_create(
@@ -90,21 +89,20 @@ def register_order(request):
             phonenumber=order_from_front.validated_data['phonenumber'],
             address=order_from_front.validated_data['address']
         )
-    
+
     products = order_from_front.validated_data['products']
     for product in products:
         ordered_product = Product.objects.get(name=product['product'])
         OrderProduct.objects.get_or_create(
-            order = order,
-            product = ordered_product,
-            quantity = product['quantity'],
+            order=order,
+            product=ordered_product,
+            quantity=product['quantity'],
             price=ordered_product.price * product['quantity']
             )
-        
+
     serializer = OrderSerializer(order)
-    
+
     if order and ordered_product:
-        return  JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.data, status=201)
 
     return Response()
-
